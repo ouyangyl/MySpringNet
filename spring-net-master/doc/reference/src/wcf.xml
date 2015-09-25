@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/*
+ * Copyright 2002-2010 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+<chapter version="5" xml:id="wcf" xmlns="http://docbook.org/ns/docbook"
+         xmlns:ns6="http://www.w3.org/1999/xlink"
+         xmlns:ns5="http://www.w3.org/1998/Math/MathML"
+         xmlns:ns4="http://www.w3.org/1999/xhtml"
+         xmlns:ns3="http://www.w3.org/2000/svg"
+         xmlns:ns="http://docbook.org/ns/docbook">
+  <title>Windows Communication Foundation (WCF)</title>
+
+  <section xml:id="wcf-introduction">
+    <title>Introduction</title>
+
+    <para>Spring's WCF support allows you to configure your WCF services via
+    dependency injection and add additional behavior to them using
+    Aspect-Oriented programming (AOP).</para>
+
+    <para>For those who would like to get their feet wet right way, check out
+    the WcfQuickStart application in the examples directory.</para>
+  </section>
+
+  <section xml:id="wcf-di">
+    <title>Configuring WCF services via Dependency Injection</title>
+
+    <para>The technical approach used to perform dependency injection is based
+    on dynamically creating an implementation of your service interface (a
+    dynamic proxy) that retrieves a configured instance of your service type
+    from the Spring container. This dynamic proxy is then the final service
+    type that is hosted.<note>
+        <para>An alternative implementation approach that uses extensibility
+        points in WCF to delegate to Spring to create and configure your WCF
+        service was tried but proved to be limited in its range of
+        applicability. This approach was first taken (afaik) by Oran Dennison
+        on his <link
+        ns6:href="http://orand.blogspot.com/2006/10/wcf-service-dependency-injection.html">blog</link>
+        and several other folks on the web since then. The issue in using this
+        approach is that if the service is configured to be a singleton, for
+        example using
+        <literal>[ServiceBehavior(InstanceContextMode=InstanceContextMode.Single)]
+        </literal>then the invocation of the IInstanceProvider is
+        short-circuited. See the notes on the MSDN class documentation <link
+        ns6:href="http://msdn.microsoft.com/en-us/library/system.servicemodel.dispatcher.iinstanceprovider.aspx">here</link>.
+        While this would be the preferred approach, no acceptable work around
+        was found.</para>
+      </note></para>
+
+    <section xml:id="wcf-di-proxy">
+      <title>Dependency Injection</title>
+
+      <para>In this approach you develop your WCF services as you would
+      normally do. For example here is a sample service type taken from the
+      quickstart example.</para>
+
+      <programlisting language="csharp">    [ServiceContract(Namespace = "http://Spring.WcfQuickStart")]
+    public interface ICalculator
+    {
+        [OperationContract]
+        double Add(double n1, double n2);
+        [OperationContract]
+        double Subtract(double n1, double n2);
+        [OperationContract]
+        double Multiply(double n1, double n2);
+        [OperationContract]
+        double Divide(double n1, double n2);
+        [OperationContract]
+        string GetName();
+    }</programlisting>
+
+      <para>The implementation for the methods is fairly obvious but an
+      additional property, <literal>SleepInSeconds</literal>, is present. This
+      is the property we will configure via dependency injection. Here is a
+      partial listing of the implementation</para>
+
+      <programlisting language="csharp">    public class CalculatorService : ICalculator
+    {
+        private int sleepInSeconds;
+
+        public int SleepInSeconds
+        {
+            get { return sleepInSeconds; }
+            set { sleepInSeconds = value; }
+        }
+
+        public double Add(double n1, double n2)
+        {
+            Thread.Sleep(sleepInSeconds*1000);
+            return n1 + n2;
+
+        }
+
+
+        //  additional implementation not shown for brevity
+
+    }</programlisting>
+
+      <para>To configure this object with Spring, provide the XML
+      configuration metadata as shown below as you would with any Spring
+      managed object.</para>
+
+      <programlisting language="myxml">      &lt;object id="calculator" singleton="false" type="Spring.WcfQuickStart.CalculatorService, Spring.WcfQuickStart.ServerApp"&gt;
+        &lt;property name="SleepInSeconds" value="1"/&gt;
+      &lt;/object&gt;
+</programlisting>
+
+      <note>
+        <para>The object must be declared as a 'prototype' object, i.e. not a
+        singleton, in order to interact correctly with WCF instancing.</para>
+      </note>
+
+      <para>To host this service type in a standalone application define an
+      instance of a
+      <literal>Spring.ServiceModel.Activation.ServiceHostFactoryObject</literal>
+      and set is property <literal>TargetName</literal> to the id value of the
+      previously defined service type.
+      <literal>ServiceHostFactoryObject</literal> is a Spring
+      <literal>IFactoryObject</literal> implementation. (See <link
+      linkend="objects-factory-lifecycle-factoryobject">here</link> for more
+      information on <literal>IFactoryObjects</literal> and their interaction
+      with the container.) The <literal>ServiceHostFactoryObject</literal>
+      will create an instance of
+      <literal>Spring.ServiceModel.Activation.SpringServiceHost</literal> that
+      will be the ServiceHost instance associated with your service type. This
+      configuration for this step is shown below.</para>
+
+      <programlisting language="myxml">      &lt;object id="calculatorServiceHost" type="Spring.ServiceModel.Activation.ServiceHostFactoryObject, Spring.Services"&gt;
+        &lt;property name="TargetName" value="calculator" /&gt;
+      &lt;/object&gt;</programlisting>
+
+      <para>Additional service configuration can be done declaratively in the
+      standard App.config file as shown below</para>
+
+      <programlisting language="myxml">&lt;system.serviceModel&gt;
+  &lt;services&gt;
+    &lt;service name="calculator" behaviorConfiguration="DefaultBehavior"&gt;
+      &lt;host&gt; ... &lt;/host&gt;
+      &lt;endpoint&gt; ... &lt;/endpoint&gt;
+    &lt;/service&gt;
+    ...
+  &lt;/services&gt;
+
+&lt;/system.serviceModel&gt;</programlisting>
+
+      <note>
+        <para>It is important that the name of the service in the WCF
+        declarative configuration section match the name of the Spring object
+        definition</para>
+      </note>
+
+      <para><literal>Spring.ServiceModel.Activation.SpringServiceHost
+      </literal>is where the dynamic proxy for your service type is generated.
+      This dynamic proxy will implement a single 'WCF' interface, the same on
+      that your service type implements. The implementation of the service
+      interface methods on the proxy will delegate to a wrapped 'target'
+      object which is the object instance retrieved by name from the Spring
+      container using the Spring API,
+      <literal>ApplicationContext.GetObject(name)</literal>. Since the object
+      retrieved in this manner is fully configured, your WCF service is as
+      well.</para>
+
+      <para>Outside of a standalone application you can also use the class
+      <literal>Spring.ServiceModel.Activation.ServiceHostFactory</literal>
+      (which inherits from
+      <literal>System.ServiceModel.Activation.ServiceHostFactory</literal>) to
+      host your services so that they can be configured via dependency
+      injection. To use the dynamic proxy approached described here you should
+      still refer to the name of the service as the name of the object
+      definition used to configure the service type in the Spring
+      container.</para>
+
+      <para>There are not many disadvantages to this approach other than the
+      need to specify the service name as the name of the object definition in
+      the Spring container and to ensure that singleton=false is used in the
+      object definition. You can also use
+      <literal>Spring.ServiceModel.Activation.ServiceHostFactory</literal> to
+      host your service inside IIS but should still refer to the service by
+      the name of the object in the Spring container.</para>
+    </section>
+  </section>
+
+  <section xml:id="wcf-aop">
+    <title>Apply AOP advice to WCF services</title>
+
+    <para>In either approach to performing dependency injection you can apply
+    additional AOP advice to your WCF services in the same way as you have
+    always done in Spring. The following configuration shows how to apply some
+    simple performance monitoring advice to all services in the
+    <literal>Spring.WcfQuickStart</literal> namespace and is taken from the
+    QuickStart example.</para>
+
+    <programlisting language="myxml">      &lt;object id="serviceOperation" type="Spring.Aop.Support.SdkRegularExpressionMethodPointcut, Spring.Aop"&gt;
+        &lt;property name="pattern" value="Spring.WcfQuickStart.*"/&gt;
+      &lt;/object&gt;
+      
+      &lt;object id="perfAdvice" type="Spring.WcfQuickStart.SimplePerformanceInterceptor, Spring.WcfQuickStart.ServerApp"&gt;
+        &lt;property name="Prefix" value="Service Layer Performance"/&gt;
+      &lt;/object&gt;
+      
+      &lt;aop:config&gt;
+        &lt;aop:advisor pointcut-ref="serviceOperation" advice-ref="perfAdvice"/&gt;
+      &lt;/aop:config&gt;</programlisting>
+
+    <para>The aop:config section implicitly uses Spring's autoproxying
+    features to add additional behavior to any objects defined in the
+    container that match the pointcut criteria.</para>
+  </section>
+
+  <section>
+    <title>Creating client side proxies declaratively</title>
+
+    <para>To create a client side proxy based on the use of
+    ChannelFactory&lt;T&gt;, you can use Spring's WCF schema to create an
+    instance of the interface that will communicate over a WCF channel. See
+    section on the <link linkend="xsd-config-body-schemas-wcf">Spring WCF
+    Schema</link> for more information.</para>
+
+    <programlisting language="myxml">&lt;objects xmlns="http://www.springframework.net"
+         xmlns:wcf="http://www.springframework.net/wcf"&gt;
+
+  &lt;!-- returns ChannelFactory&lt;ICalculator&gt;("calculatorEndpoint").CreateChannel() --&gt;
+
+  &lt;wcf:channelFactory id="serverAppCalculator"
+       channelType="Spring.WcfQuickStart.ICalculator, Spring.WcfQuickStart.Contracts"
+       endpointConfigurationName="serverAppCalculatorEndpoint" /&gt;
+  
+&lt;/objects&gt;</programlisting>
+
+    <para>The value 'serverAppCalculatorEndpoint' refers to the name of an
+    enpoints in the &lt;client&gt; section of the standard WCF configuration
+    inside of App.config.</para>
+    
+    <para>You can also specify the scope of the created channel (default is singleton) 
+    and use classic DI to configure the ChannelFactory&lt;T&gt; instance.</para>
+
+    <programlisting language="myxml">&lt;objects xmlns="http://www.springframework.net"
+         xmlns:wcf="http://www.springframework.net/wcf"&gt;
+         
+  &lt;wcf:channelFactory id="serverAppCalculator"
+       channelType="Spring.WcfQuickStart.ICalculator, Spring.WcfQuickStart.Contracts"
+       endpointConfigurationName="serverAppCalculatorEndpoint"&gt;
+    &lt;wcf:property name="IsSingleton" value="false" /&gt;
+    &lt;wcf:property name="Credentials.Windows.ClientCredential" value="Domain\Login:Password" /&gt;
+  &lt;/wcf:channelFactory&gt;
+  
+&lt;/objects&gt;</programlisting>
+  </section>
+
+  <section>
+    <title>Exporting POCOs as WCF Services</title>
+
+    <para>Much like the approach taken for .asmx web services Spring provides
+    an exporter that will add <literal>[ServiceContract] </literal>and
+    <literal>[OperationContract]</literal> attributes by default to all public
+    interface methods on a given (POCO) class. The exporter class is
+    <literal>Spring.ServiceModel.ServiceExporter</literal> and has various
+    options to fine-tune what interfaces are exported and the specific
+    attributes that get applied to each method and on that class. Here is a
+    simple example</para>
+
+    <programlisting language="myxml">&lt;object id="HelloWorldExporter" type="Spring.ServiceModel.ServiceExporter, Spring.Services"&gt;
+    &lt;property name="TargetName" value="HelloWorld"/&gt;
+    &lt;property name="MemberAttributes"&gt;
+        &lt;dictionary&gt;
+            &lt;entry key="SayHelloWorld"&gt;
+                &lt;object type="System.ServiceModel.OperationContractAttribute, System.ServiceModel"&gt;
+                    &lt;property name="IsOneWay" value="false"/&gt;
+                    &lt;!-- configure any other OperationContractAttribute properties here --&gt;
+                &lt;/object&gt;
+            &lt;/entry&gt;
+        &lt;/dictionary&gt;
+    &lt;/property&gt;
+&lt;/object&gt;</programlisting>
+
+    <para>Spring does not provide any means to add<literal>
+    [DataContract]</literal> or <literal>[DataMember]</literal> attributes to
+    method arguments of your service operations. As such, either you will do
+    that yourself or you may choose to use a serializer other than
+    DataContractSerializer, for example one that relies on method arguments
+    that implement the <literal>ISerializable</literal> interface, having the
+    <literal>[Serializable]</literal> attribute, or are serializable via the
+    XmlSerializer. Use the latter serializers is a good way to migrate from an
+    existing RCP based approach, such as using .NET remoting, to WCF in order
+    to take advantage of the WCF runtime and avoid editing much existing code.
+    You can then incrementally refactor and/or create new operations that use
+    <literal>DataContractSerializer</literal>.</para>
+  </section>
+</chapter>

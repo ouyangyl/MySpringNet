@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+ * Copyright 2002-2010 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+<chapter version="5" xml:id="misc" xmlns="http://docbook.org/ns/docbook"
+         xmlns:ns6="http://www.w3.org/1999/xlink"
+         xmlns:ns5="http://www.w3.org/1999/xhtml"
+         xmlns:ns4="http://www.w3.org/2000/svg"
+         xmlns:ns3="http://www.w3.org/1998/Math/MathML"
+         xmlns:ns="http://docbook.org/ns/docbook">
+  <title>Spring.NET miscellanea</title>
+
+  <section xml:id="spring-net-miscellanea">
+    <title>Introduction</title>
+
+    <para>This chapter contains miscellanea information on features, goodies,
+    caveats that does not belong to any paricular area.</para>
+  </section>
+
+  <section xml:id="pathmatcher">
+    <title>PathMatcher</title>
+
+    <para><literal>Spring.Util.PathMatcher</literal> provides
+    <literal>Ant/NAnt</literal>-like path name matching features.</para>
+
+    <para>To do the match, you use the method: <programlisting
+    language="csharp">static bool Match(string pattern, string path)</programlisting></para>
+
+    <para>If you want to decide if case is important or not use the method:
+    <programlisting language="csharp">static bool Match(string pattern, string path, bool ignoreCase)</programlisting></para>
+
+    <section xml:id="pathmatcher-general-rules">
+      <title>General rules</title>
+
+      <para>To build your pattern, you use the <literal>*</literal>,
+      <literal>?</literal> and <literal>**</literal> building blocks:
+      <itemizedlist spacing="compact">
+          <listitem>
+            <para><literal>*</literal>: matches any number of non slash
+            characters;</para>
+          </listitem>
+
+          <listitem>
+            <para><literal>?</literal>: matches exactly 1 (one) non slash/dot
+            character;</para>
+          </listitem>
+
+          <listitem>
+            <para><literal>**</literal>: matches any subdirectory, without
+            taking care of the depth;</para>
+          </listitem>
+        </itemizedlist></para>
+    </section>
+
+    <section xml:id="pathmatcher-matching-filenames">
+      <title>Matching filenames</title>
+
+      <para>A file name can be matched using the following notation:
+      <programlisting>foo?bar.*</programlisting> matches: <programlisting>fooAbar.txt
+foo1bar.txt
+foo_bar.txt
+foo-bar.txt</programlisting> does not match: <programlisting>foo.bar.txt
+foo/bar.txt
+foo\bar.txt</programlisting></para>
+
+      <para>The classical all files pattern: <programlisting>*.*</programlisting>
+      matches: <programlisting>foo.db
+.db
+foo
+foo.bar.db
+foo.db.db
+db.db.db</programlisting> does not match: <programlisting>c:/
+c:/foo.db
+c:/foo
+c:/.db
+c:/foo.foo.db
+//server/foo</programlisting></para>
+    </section>
+
+    <section xml:id="pathmatcher-matching-subdirectories">
+      <title>Matching subdirectories</title>
+
+      <para>A directory name can be matched at any depth level using the
+      following notation: <programlisting>**/db/**</programlisting> That
+      pattern matches the following paths: <programlisting>/db
+//server/db
+c:/db
+c:/spring/app/db/foo.db
+//Program Files/App/spaced dir/db/foo.db
+/home/spring/spaced dir/db/v1/foo.db</programlisting> but does not match
+      these: <programlisting>c:/spring/app/db-v1/foo.db
+/home/spring/spaced dir/db-v1/foo.db</programlisting></para>
+
+      <para>You can compose subdirectories to match like this:
+      <programlisting>**/bin/**/tmp/**</programlisting> That pattern matches
+      the following paths: <programlisting>c:/spring/foo/bin/bar/tmp/a
+c:/spring/foo/bin/tmp/a/b.c</programlisting> but does not match these:
+      <programlisting>c:/spring/foo/bin/bar/temp/a
+c:/tmp/foo/bin/bar/a/b.c</programlisting></para>
+
+      <para>You can use more advanced patterns: <programlisting>**/.spring-assemblies*/**</programlisting>
+      matches: <programlisting>c:/.spring-assemblies
+c:/.spring-assembliesabcd73xs
+c:/app/.spring-assembliesabcd73xs
+c:/app/.spring-assembliesabcd73xs/foo.dll
+//server/app/.spring-assembliesabcd73xs</programlisting> does not match:
+      <programlisting>c:/app/.spring-assemblie</programlisting></para>
+    </section>
+
+    <section xml:id="pathmatcher-case-matters">
+      <title>Case does matter, slashes don't</title>
+
+      <para>.NET is expected to be a cross-platform development ... platform.
+      So, <literal>PathMatcher</literal> will match taking care of the case of
+      the pattern and the case of the path. For example: <programlisting>**/db/**/*.DB</programlisting>
+      matches: <programlisting>c:/spring/service/deploy/app/db/foo.DB</programlisting>
+      but does not match: <programlisting>c:/spring/service/deploy/app/DB/foo.DB
+c:spring/service/deploy/app/spaced dir/DB/foo.DB
+//server/share/service/deploy/app/DB/backup/foo.db</programlisting></para>
+
+      <para>If you do not matter about case, you should explicitly tell the
+      <literal>Pathmatcher</literal>.</para>
+
+      <para>Back and forward slashes, in the very same cross-platform spirit,
+      are not important: <programlisting>spring/foo.bar</programlisting>
+      matches all the following paths: <programlisting>c:\spring\foo.bar
+c:/spring\foo.bar
+c:/spring/foo.bar
+/spring/foo.bar
+\spring\foo.bar</programlisting></para>
+    </section>
+  </section>
+</chapter>

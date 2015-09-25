@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+ * Copyright 2002-2010 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+<chapter xml:id="windows-service" xmlns="http://docbook.org/ns/docbook" version="5">
+  <title>Windows Services</title>
+
+  <sect1>
+    <title>Remarks</title>
+    <para>
+    This is functionality that will be included after the 
+    1.0 release.  If you want to use these features please get the 
+    code from CVS <ulink url="http://opensource.atlassian.com/confluence/spring/display/NET/Project+Structure"></ulink>
+    (instructions) or from the download section of the Spring.NET website that contains an
+    .zip with the full CVS tree.
+    In addition to this documentation
+    you can refer to the example program located at
+    <literal>examples\Spring\Spring.Examples.WindowsService</literal>
+    to better understand the package.  Please check the Spring.NET 
+    <ulink url="http://www.springframework.net/doc/reference/windows-service.html">website</ulink> 
+    for the latest updates to this document.
+    </para>
+  </sect1>
+  <sect1>
+    <title>Introduction</title>
+    <para>
+    Developers usually create Windows Services using the 
+    Visual Studio .NET wizard.  While not difficult to do, this
+    procedure is repetative and does not encourage separation between 
+    infrastructure code (windows service) and application code.  This is
+    generally considered a "bad thing" but you can certainly disagree.
+    </para>
+    <para>    
+    As Spring.NET can provide an explicitly managed
+    initialize/destroy lifecycle for singleton objects, there is
+    a natural synergy with the lifecycle of a Windows service.
+    As such, it could be very convenient to expose a Spring application 
+    context as a Windows service. Starting and stopping the service corresponds
+    to creating and destroying an application context and its
+    contained objects.  This approach provides a high level means to
+    declare what objects are created and destroyed when developing
+    a Windows service. 
+    </para>
+    <para>
+    To do that, Spring.NET requires the installation of one physical 
+    service able to run as services as many applications as you want - each a 
+    logical independent service in their own application domain.  
+    By default, the deployment and updating of the service can also
+    be done by copying the relevant executables to a special directory.
+    </para>
+    <para>
+    The executable that at present provides these features is the
+    <literal>Spring.Services.WindowsService.Process.exe</literal>
+    assembly. It makes heavy use of classes and interfaces definde in 
+    the <literal>Spring.Services.WindowsService.Common.dll</literal>
+    assembly.  You should reference the common assembly it if you want to 
+    follow the advice on customization contained in the following sections 
+    </para>
+    <para>
+    The benefits of this approach, a part from those given by separating
+    infrastructure code and application code (a field where Spring.NET
+    tries hard to succeed) is that you can think about installing a new 
+    service at client site by simply dropping a new application assembly
+    in a remote directory<footnote></footnote>.
+    </para>
+  </sect1>
+  
+  <sect1>
+    <title>The <literal>Spring.Services.WindowsService.Process.exe</literal> application</title>
+    <sect2>
+      <title>Installing</title>
+    <para>
+    The installation can be done in two ways, using the .NET SDK
+    <literal>installutil.exe</literal> tool or using the more mundane
+    <literal>Spring.Services.WindowsService.Installer.exe</literal>;
+    while the former is the standard, the latter is probably  
+    more flexible. It allows you to customize the name/display name of the 
+    service and has the ability to install multiple times the same assembly
+    with different names.  This can be useful in a 
+    number of scenarios, especially where you don't like, for some 
+    reasons, to run several different logical services under the 
+    same physical windows service.
+    </para>
+    <para><emphasis>
+    Be aware of the fact that the service will be installed as
+    running with the system account (installing with a specific
+    user account seems a bit buggy on Windows XP)
+    </emphasis></para>
+    <para>
+    That said, while <literal>installutil</literal> 
+    <ulink url="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/cptools/html/cpconinstallerutilityinstallutilexe.asp">
+    <citetitle>is documented on its own </citetitle></ulink>, 
+    the command line for 
+    <literal>Spring.Services.WindowsService.Installer.exe</literal>
+    is as follow:    
+      <programlisting>Spring.Services.WindowsService.Installer.exe
+
+usage: 
+ install service-exe-path service-display-name service-name
+ uninstall service-name      [i|u] service-exe-path service-display-name service-name</programlisting>
+      for example, to install, you can invoke it with the following:
+      <programlisting>... install  Spring.Services.WindowsService.Process.exe "Spring.Service Support" spring-service</programlisting>
+      and to uninstall it: 
+      <programlisting>... uninstall  spring-service</programlisting>
+    </para>
+    </sect2>
+    <sect2>
+      <title>Configuration</title>
+    <para>
+    The standard .NET <literal>.config</literal> file 
+    can be used to tune some parameters of 
+    <literal>Spring.Services.WindowsService.Process.exe</literal>, 
+    (including log4net settings, for which it is recomended to consult 
+    the log4net documentation).
+    </para>
+    <para>
+    This file also define the context run by this process; here the file in its current beauty:
+      <programlisting language="xml">&lt;configuration&gt;
+
+    &lt;configSections&gt;
+        &lt;section name=&quot;log4net&quot; type=&quot;System.Configuration.IgnoreSectionHandler&quot; /&gt;
+        &lt;sectionGroup name=&quot;spring&quot;&gt;
+            &lt;section name=&quot;context&quot; type=&quot;Spring.Context.Support.ContextHandler, Spring.Core&quot; /&gt;
+            &lt;section name=&quot;objects&quot; type=&quot;Spring.Context.Support.DefaultSectionHandler, Spring.Core&quot; /&gt;
+        &lt;/sectionGroup&gt;
+    &lt;/configSections&gt;
+      
+    &lt;spring&gt;
+        &lt;context type=&quot;Spring.Context.Support.XmlApplicationContext, Spring.Core&quot;&gt;
+            &lt;resource uri=&quot;file://~/service-process-definition.xml&quot; /&gt;
+        &lt;/context&gt;        
+    &lt;/spring&gt;
+
+    &lt;system.runtime.remoting&gt;
+    &lt;application&gt;
+        &lt;channels&gt;
+        &lt;channel ref=&quot;http&quot; port=&quot;1234&quot; /&gt;        
+        &lt;/channels&gt;
+    &lt;/application&gt;
+    &lt;/system.runtime.remoting&gt;
+ 
+  &lt;log4net&gt;
+    &lt;!-- see http://logging.apache.org/log4net/release/manual/introduction.html --&gt;
+    &lt;appender name=&quot;RollingFile&quot; type=&quot;log4net.Appender.RollingFileAppender&quot;&gt;
+      &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+        &lt;conversionPattern value=&quot;%d [%t] %-5p %c{1} - %m%n&quot; /&gt;
+      &lt;/layout&gt;
+      &lt;file value=&quot;logs/Spring.Service.Process.log&quot; /&gt;
+      &lt;appendToFile value=&quot;true&quot; /&gt;
+      &lt;maximumFileSize value=&quot;500KB&quot; /&gt;
+      &lt;maxSizeRollBackups value=&quot;5&quot; /&gt;
+    &lt;/appender&gt;
+    &lt;appender name=&quot;OutputDebugString&quot; type=&quot;log4net.Appender.OutputDebugStringAppender&quot;&gt;
+      &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+        &lt;conversionPattern value=&quot;%d{HH:mm:ss,fff} %-5p %c{2}(line:%L) - %m%n&quot; /&gt;
+      &lt;/layout&gt;
+    &lt;/appender&gt;
+    &lt;root&gt;
+      &lt;level value=&quot;OFF&quot; /&gt;
+    &lt;/root&gt;
+      &lt;logger name=&quot;Spring.Services&quot;&gt;
+          &lt;level value=&quot;ALL&quot; /&gt;
+      &lt;appender-ref ref=&quot;RollingFile&quot; /&gt;
+      &lt;appender-ref ref=&quot;OutputDebugString&quot; /&gt;
+      &lt;/logger&gt;      
+  &lt;/log4net&gt;
+
+&lt;/configuration&gt;</programlisting>
+    </para>
+    <para>
+    As you see, the context is defined in another file: let's review the objects it defines.
+    </para>
+    <para>
+    Firstly, it is worth notice that in order to 'localize' the service (i.e. to know where it is installed to use that directory as
+    base for the deploy dir as in the above file) you should define an object like this: the name is not 
+    very important, it is important that it is an <literal>IObjectFactoryPostProcessor</literal> and so will be 
+    automatically applied to this application context:
+      

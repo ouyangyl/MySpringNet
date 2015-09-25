@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/*
+ * Copyright 2002-2010 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+<chapter version="5" xml:id="data-quickstart"
+         xmlns="http://docbook.org/ns/docbook"
+         xmlns:ns6="http://www.w3.org/1999/xlink"
+         xmlns:ns5="http://www.w3.org/1999/xhtml"
+         xmlns:ns4="http://www.w3.org/2000/svg"
+         xmlns:ns3="http://www.w3.org/1998/Math/MathML"
+         xmlns:ns="http://docbook.org/ns/docbook">
+  <title>ADO.NET Data Access QuickStart</title>
+
+  <section>
+    <title>Introduction</title>
+
+    <para>The data access quick start demonstrates the API usage of
+    AdoTemplate (both generic and non-generic versions) as well as the use of
+    the object based data access classes contained in Spring.Data.Objects. It
+    uses the Northwind database and is located under the directory
+    examples/DataAccessQuickStart.</para>
+
+    <para>The quick start contains pseudo DAO objects and a collection of
+    NUnit tests to exercise them rather than a full blown application. To run
+    the tests from within VS.NET install <ulink
+    url="http://www.testdriven.net/">TestDriven.NET</ulink>, <ulink
+    url="http://www.jetbrains.com/resharper/">ReSharper</ulink>, or an
+    equivalent . The listing of DAO classes and the parts of Spring.Data that
+    they demonstrate is shown below.</para>
+
+    <itemizedlist>
+      <listitem>
+        <para><literal>CommandCallbackDao</literal> - Use of the
+        ICommandCallback and CommandCallbackDelegate</para>
+      </listitem>
+
+      <listitem>
+        <para><literal>ResultSetExtractorDao</literal> - Use of
+        IResultSetExtractor and ResultSetExtractorDelegate</para>
+      </listitem>
+
+      <listitem>
+        <para><literal>RowCallbackDao</literal> - Use of IRowCallback and
+        RowCallbackDelegate</para>
+      </listitem>
+
+      <listitem>
+        <para><literal>RowMapperDao</literal> - Use of IRowMapper and
+        RowMapperDelegate</para>
+      </listitem>
+
+      <listitem>
+        <para><literal>QueryForObject</literal> - Use of QueryForObject
+        method.</para>
+      </listitem>
+
+      <listitem>
+        <para><literal>StoredProcDao</literal> - Use of
+        Spring.Data.Objects.StoredProcedure</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>The are simple domain objects in the Spring.DataQuickStart.Domain
+    namespace, collections of which are generally returned from the DAO
+    methods.</para>
+
+    <note>
+      <para>To follow this Data Access QuickStart load the solution file found
+      in the directory
+      <literal>&lt;spring-install-dir&gt;\examples\Spring\Spring.DataQuickStart</literal></para>
+    </note>
+
+    <section>
+      <title>Database configuration</title>
+
+      <para>To get started running the 'unit test' you should configure the
+      database connection string. The listing in
+      DataQuickStart.GenericTemplate.ExampleTests.xml is shown below</para>
+
+      <programlisting language="myxml">&lt;objects xmlns="http://www.springframework.net"
+         xmlns:db="http://www.springframework.net/database"&gt;
+
+  &lt;db:provider id="dbProvider" 
+                provider="SqlServer-1.1" 
+                connectionString="Data Source=(local);Database=Northwind;User ID=springqa;Password=springqa;Trusted_Connection=False"/&gt;
+
+
+  &lt;! -- other definitions not shown 
+
+
+&lt;/objects&gt;</programlisting>
+
+      <para>You should change the value of the provider element to correspond
+      to you database and the connection string as appropriate. Please refer
+      to the documentation on the <link linkend="dbprovider">DbProvider</link>
+      abstraction for details particular to your database configuration. You
+      should also install the Northwind database, which is available for
+      SqlServer 2005 from this <ulink
+      url="http://www.microsoft.com/downloads/details.aspx?FamilyID=06616212-0356-46a0-8da2-eebc53a68034&amp;DisplayLang=en">download
+      location</ulink>. The minimal schema to support other database providers
+      may be supported in the future.</para>
+
+      <section>
+        <title>AdoTemplate Configuration</title>
+
+        <para>The various DAO objects refer to an instance of AdoTemplate
+        which is responsible for performing data access operations. This is
+        declared in ExampleTest.xml as shown below</para>
+
+        <programlisting language="myxml">  &lt;object id="adoTemplate" type="Spring.Data.Generic.AdoTemplate, Spring.Data"&gt;
+    &lt;property name="DbProvider" ref="dbProvider"/&gt;
+    &lt;property name="DataReaderWrapperType" value="Spring.Data.Support.NullMappingDataReader, Spring.Data"/&gt;
+  &lt;/object&gt;
+</programlisting>
+
+        <para>The property DbProvider refers to the database configuration you
+        previously defined. Also the property DataReaderWrapper is set to the
+        NullMappingDataReader that ships with Spring. This provides convenient
+        default values for null values returned from the database. To read
+        more about AdoTemplate, refer to the chapter, <link linkend="ado">Data
+        access using ADO.NET</link>.</para>
+      </section>
+    </section>
+
+    <section>
+      <title>CommandCallback</title>
+
+      <para>The code that exercises the use of a CommandCallback is shown
+      below</para>
+
+      <programlisting language="csharp">        [Test]
+        public void CallbackDaoTest()
+        {
+            CommandCallbackDao commandCallbackDao = ctx["commandCallbackDao"] as CommandCallbackDao;
+            int count = commandCallbackDao.FindCountWithPostalCode("1010");
+            Assert.AreEqual(3, count);
+        }</programlisting>
+
+      <para>The configuration of the CommandCallbackDao is shown below</para>
+
+      <programlisting language="myxml">  &lt;object id="commandCallbackDao" type="Spring.DataQuickStart.Dao.GenericTemplate.CommandCallbackDao, Spring.DataQuickStart"&gt;
+    &lt;property name="AdoTemplate" ref="adoTemplate"/&gt;
+  &lt;/object&gt;</programlisting>
+
+      <para>This the minimal configuration required for a DAO object,
+      typically DAO objects in your application will include other
+      configuraiton information, for example properties to specify the maximum
+      size of the result set returned etc. The implementation of the
+      FindCountWithPostalCode is shown below</para>
+
+      <programlisting language="csharp">        public virtual int FindCountWithPostalCodeWithDelegate(string postalCode)
+        {
+            // Using anonymous delegates allows you to easily reference the
+            // surrounding parameters for use with the DbCommand processing.
+
+            return AdoTemplate.Execute&lt;int&gt;(delegate(DbCommand command)
+                   {
+                       // Do whatever you like with the DbCommand... downcast to get 
+                       // provider specific funtionality if necesary.
+                                                    
+                       command.CommandText = cmdText;
+                         
+                       DbParameter p = command.CreateParameter();
+                       p.ParameterName = "@PostalCode";
+                       p.Value = postalCode;
+                       command.Parameters.Add(p);
+
+                       return (int)command.ExecuteScalar();
+
+                   });
+
+        }</programlisting>
+
+      <para>Anonymous delegates are used to specify the implementation of the
+      callback function that passes in a DbCommand object. You can then use
+      the DbCommand object as you see fit to access the database. If you are
+      using Spring's delcarative transaction management features then this
+      DbCommand would have its transaction and connection properties based on
+      the context of the surrounding transaction. All resource management for
+      the DbCommand are handled for you by the framework, as well as error
+      reporting on error etc. If you execute the test, it will pass, assuming
+      you haven't modified any data in the Northwind database from its raw
+      installation.</para>
+    </section>
+  </section>
+</chapter>

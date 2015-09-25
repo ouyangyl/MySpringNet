@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+ * Copyright 2002-2010 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+<chapter version="5" xml:id="web-quickstart"
+         xmlns="http://docbook.org/ns/docbook"
+         xmlns:ns6="http://www.w3.org/1999/xlink"
+         xmlns:ns5="http://www.w3.org/1998/Math/MathML"
+         xmlns:ns4="http://www.w3.org/2000/svg"
+         xmlns:ns3="http://www.w3.org/1999/xhtml"
+         xmlns:ns="http://docbook.org/ns/docbook">
+  <title>Web Quickstarts</title>
+
+  <section>
+    <title>Introduction</title>
+    <para>
+    Spring.NET provides integration with ASP.NET Web Forms and ASP.NET MVC versions 2 and 3.  There are 
+    quick start applications for both Web Forms and MVC.   You can read more about Web Form integration in
+    <xref linkend="web"/>, MVC2 in <xref linkend="web-mvc"/> and MVC3 in <xref linkend="web-mvc3"/>.
+    </para>
+    <para>The ASP.NET Web Form Quickstart solution provides basic 'Hello World' examples
+    for using a wide variety of Spring.Web features, staring with dependency injection for you
+    pages and user controls.  You can use this solution as a starting
+    point and then move on to the SpringAir application that uses a wider
+    range of Spring.Web features. (See <xref linkend="springair"/>).  The documention inside the ASP.NET Web Form Quickstart solution and web application will guide you through each feature.</para>
+
+    <note>
+      <para>To follow the Web Form QuickStart load the solution file found in
+      the directory
+      <literal>&lt;spring-install-dir&gt;\examples\Spring\Spring.WebQuickStart</literal></para>
+    </note>
+
+
+    <para>The ASP.NET MVC2 and MVC3 examples show how you can configure various MVC components using
+    the Spring Dependency Injection container.
+    <note>
+      <para>To follow this MVC2 QuickStart load the solution file found in
+      the directory
+      <literal>&lt;spring-install-dir&gt;\examples\Spring\Spring.MvcQuickStart</literal></para>
+      <para>To follow this MVC3 QuickStart load the solution file found in
+      the directory
+      <literal>&lt;spring-install-dir&gt;\examples\Spring\Spring.Mvc3QuickStart</literal></para>
+    </note>
+    </para>
+  </section>
+</chapter>

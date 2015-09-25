@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/*
+ * Copyright 2002-2010 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+-->
+<chapter version="5" xml:id="nms-quickstart"
+         xmlns="http://docbook.org/ns/docbook"
+         xmlns:ns6="http://www.w3.org/1999/xlink"
+         xmlns:ns5="http://www.w3.org/1999/xhtml"
+         xmlns:ns4="http://www.w3.org/2000/svg"
+         xmlns:ns3="http://www.w3.org/1998/Math/MathML"
+         xmlns:ns="http://docbook.org/ns/docbook">
+  <title>NMS QuickStart</title>
+
+  <section>
+    <title>Introduction</title>
+
+    <para>The NMS quick start application demonstrates how to use asynchronous
+    messaging to implement a system for purchasing a stock. To purchase a
+    stock, a client application will send a stock request message containing
+    the information about the stock, i.e. ticker symbol, quantity, etc. The
+    client request message will be received by the server where it will
+    perform business processing on the request, for example to determine if
+    the user has sufficient credit to purchase the stock or if the user is
+    even allowed to make the purchase due to existing account restrictions.
+    These are typically external processes as well. Usually the server
+    application will persist state about the request and forward it on to an
+    execute venue where the actual execution of the stock request is
+    performed. In addition, market data for the stock will be sent from the
+    server process to the client. The high level exchange of information is
+    shown below.</para>
+
+    <mediaobject>
+      <imageobject>
+        <imagedata fileref="images/nms-quickstart.jpg" scale="75"></imagedata>
+      </imageobject>
+    </mediaobject>
+
+    <note>
+      <para>To follow this NMS QuickStart load the solution file found in the
+      directory
+      <literal>&lt;spring-install-dir&gt;\examples\Spring\Spring.NmsQuickStart</literal></para>
+    </note>
+  </section>
+
+  <section>
+    <title>Message Destinations</title>
+
+    <para>To implement this flow using messaging the following queues and
+    topics will be used. All requests from the client to the server will be
+    sent on the queue named APP.STOCK.REQUEST. Responses to the requests will
+    be sent from the server to the client on a queue unique to each client. In
+    this example the queue name is of the form APP.STOCK.&lt;UserName&gt;, and
+    more specifically is configured to be APP.STOCK.JOE. Market data does not
+    need to be delivered to an individual client as many client applications
+    are interested in this shared information. As such, the server will send
+    market data information on a topic named APP.STOCK.MARKETDATA. The
+    messaging communication between the server and the execution venue is not
+    included as part of the application. An local implementation of the
+    service interface that represents the execution venue is used instead of
+    one based on messaging or another middleware technology. The messaging
+    flow showing the queues and topics used is shown below.</para>
+
+    <mediaobject>
+      <imageobject>
+        <imagedata fileref="images/nms-quickstart-msg-destinations.jpg"
+                   role="" scale="75"></imagedata>
+      </imageobject>
+    </mediaobject>
+
+    <para>Queues are shown in red and topics in green.</para>
+  </section>
+
+  <section xml:id="nms-gateways">
+    <title>Gateways</title>
+
+    <para>Gateways represent the service operation to send a message. The
+    client will send a stock request to the server based on the contract
+    defined by the <literal>IStockService</literal> interface .</para>
+
+    <programlisting language="csharp">    public interface IStockService
+    {
+        void Send(TradeRequest tradeRequest);
+    }</programlisting>
+
+    <para>The server will send market data to the clients based on the
+    contract defined by the <literal>IMarketDataService</literal>
+    interface.</para>
+
+    <programlisting language="csharp">    public interface IMarketDataService
+    {
+        void SendMarketData();
+    }</programlisting>
+
+    <para>The market data gateway has no method parameters as it is assumed
+    that implementations will manage the data to send internally. The
+    <literal>TradeRequest</literal> object is one of the data objects that
+    will be exchanged in the application and is discussed in the next
+    section.</para>
+
+    <para>The use of interfaces allows for multiple implementations to be
+    created. Implementations that use messaging to communicate will be based
+    on the Spring's <literal>NmsGateway</literal> class and will be discussed
+    later. stub or mock implementations can be used for testing
+    purposes.</para>
+  </section>
+
+  <section xml:id="nms-messagedata">
+    <title>Message Data</title>
+
+    <para>The <literal>TradeRequest</literal> object shown above contains all
+    the information required to process a stock order. To promote the
+    interoperability of this data across different platforms the
+    <literal>TradeRequest</literal> class is generated from an XML Schema
+    using Microsoft's Schema Definition Tool (xsd.exe). The schema for trade
+    request is shown below</para>
+
+    <programlisting language="myxml">&lt;xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" 
+           targetNamespace="http://www.springframework.net/nms/common/2008-08-05"&gt;
+
+  &lt;xs:element name="TradeRequest"&gt;
+    &lt;xs:complexType&gt;
+      &lt;xs:sequence&gt;
+        &lt;xs:element name="Ticker" type="xs:string"/&gt;
+        &lt;xs:element name="Quantity" type="xs:long"/&gt;
+        &lt;xs:element name="Price" type="xs:decimal"/&gt;
+        &lt;xs:element name="OrderType" type="xs:string"/&gt;
+        &lt;xs:element name="AccountName" type="xs:string"/&gt;
+        &lt;xs:element name="BuyRequest" type="xs:boolean"/&gt;
+        &lt;xs:element name="UserName" type="xs:string"/&gt;
+        &lt;xs:element name="RequestID" type="xs:string"/&gt;
+      &lt;/xs:sequence&gt;
+    &lt;/xs:complexType&gt;
+  &lt;/xs:element&gt;
+
+&lt;/xs:schema&gt;
+</programlisting>
+
+    <para>Running xsd.exe on this schema will result in a class that contains
+    properties for each of the element names. A partial code listing of the
+    TradeRequest class is shown below</para>
+
+    <programlisting language="csharp">//     This code was generated by a tool.
+    public partial class TradeRequest {
+
+        public string Ticker {
+            get {
+                return this.tickerField;
+            }
+            set {
+                this.tickerField = value;
+            }
+        }
+        
+        public long Quantity {
+            get {
+                return this.quantityField;
+            }
+            set {
+                this.quantityField = value;
+            }
+        }
+      
+      // Additional properties not shown for brevity.
+
+    }</programlisting>
+
+    <para>The schema and the <literal>TradeRequest</literal> class are located
+    in the project <literal>Spring.NmsQuickStart.Common</literal>. This common
+    project will be shared between the server and client for
+    convenience.</para>
+
+    <para>When sending a response back to the client the type
+    <literal>TradeResponse</literal> will be used. The schema for the
+    <literal>TradeResponse</literal> is shown below</para>
+
+    <programlisting language="myxml">&lt;xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" 
+           targetNamespace="http://www.springframework.net/nms/common/2008-08-05"&gt;
+
+  &lt;xs:element name="TradeResponse"&gt;
+    &lt;xs:complexType&gt;
+      &lt;xs:sequence&gt;
+        &lt;xs:element name="Ticker" type="xs:string"/&gt;
+        &lt;xs:element name="Quantity" type="xs:integer"/&gt;
+        &lt;xs:element name="Price" type="xs:decimal"/&gt;
+        &lt;xs:element name="OrderType" type="xs:string"/&gt;
+        &lt;xs:element name="Error" type="xs:boolean"/&gt;
+        &lt;xs:element name="ErrorMessage" type="xs:string"/&gt;
+      &lt;/xs:sequence&gt;
+    &lt;/xs:complexType&gt;
+  &lt;/xs:element&gt;
+
+&lt;/xs:schema&gt;</programlisting>
+
+    <para>The <literal>TradeResponse</literal> type also generated from a
+    schema using xsd.exe. A partial code listing is shown below</para>
+
+    <programlisting language="csharp">//     This code was generated by a tool.
+
+    public partial class TradeResponse {
+
+        public string Ticker {
+            get {
+                return this.tickerField;
+            }
+            set {
+                this.tickerField = value;
+            }
+        }
+        
+        public long Quantity {
+            get {
+                return this.quantityField;
+            }
+            set {
+                this.quantityField = value;
+            }
+        }
+
+      // Additional properties not shown for brevity.
+
+    }</programlisting>
+
+    <para>The market data information will be sent using a Hashtable data
+    structure.</para>
+  </section>
+
+  <section xml:id="nms-handlers">
+    <title>Message Handlers</title>
+
+    <para>When the <literal>TradeRequest</literal> message is received by the
+    server, it will be handled by the class
+    <literal>Spring.NmsQuickStart.Server.Handlers.StockAppHandler
+    </literal>shown below</para>
+
+    <programlisting language="csharp">    public class StockAppHandler
+    {
+        private IExecutionVenueService executionVenueService;
+
+        private ICreditCheckService creditCheckService;
+
+        private ITradingService tradingService;
+        
+        public TradeResponse Handle(TradeRequest tradeRequest)
+        {
+            TradeResponse tradeResponse;
+            IList errors = new ArrayList();
+            if (creditCheckService.CanExecute(tradeRequest, errors))
+            {
+                tradeResponse = executionVenueService.ExecuteTradeRequest(tradeRequest);
+                tradingService.ProcessTrade(tradeRequest, tradeResponse);
+            }
+            else
+            {
+                tradeResponse = new TradeResponse();
+                tradeResponse.Error = true;
+                tradeResponse.ErrorMessage = errors[0].ToString();
+            }
+            return tradeResponse;
+        }
+    }</programlisting>
+
+    <para>The stub implementations of the services, located in the namespace
+    <literal>Spring.NmsQuickStart.Server.Services.Stubs</literal>, will result
+    in always sending back a error-free trade response message. A realistic
+    implementation would likely have the execution venue and trading service
+    be remote services and the trading service could be implemented as a local
+    transactional service layer that uses spring's declarative transaction
+    management features.</para>
+
+    <para>The client will receive a TradeResponse message as well as a
+    Hashtable of data representing the market data. The message handle for the
+    client is the class Spring.NmsQuickStart.Client.Handlers.StockAppHandler
+    and is shown below.</para>
+
+    <programlisting language="csharp">    public class StockAppHandler
+    {
+
+        // definition of stockController omitted for brevity.
+
+        public void Handle(Hashtable data)
+        {
+            // forward to controller to update view
+            stockController.UpdateMarketData(data);
+        }
+
+        public void Handle(TradeResponse tradeResponse)
+        {
+            // forward to controller to update view
+            stockController.UpdateTrade(tradeResponse);
+        }
+    }</programlisting>
+
+    <para>What is important to note about these handlers is that they contain
+    no messaging API artifacts. As such you can write unit and integration
+    tests against these classes independent of the middleware. The missing
+    link between the messaging world and the objects processed by the message
+    handlers are message converters. Spring's messaging helper classes, i.e.
+    SimpleMessageListenerContainer and NmsTemplate use message converters to
+    pass data to the handlers and to send data via messaging for gateway
+    implementations</para>
+  </section>
+
+  <section>
+    <title>Message Converters</title>
+
+    <para>The implementation of IMessageConverter used is
+    <literal>Spring.NmsQuickStart.Common.Converters.XmlMessageConverter</literal>.
+    This converter adds the ability to marshal and unmarshal objects to and
+    from XML strings. It also uses Spring's
+    <literal>SimpleMessageConverter</literal> to convert Hashtables, strings,
+    and byte arrays. In order to pass information about the serialized type,
+    type information is put in the message properties. The type information
+    can be either the class name or an integer value identifying the type. In
+    systems where the client and server are deployed together and are tightly
+    coupled, sharing the class name is a convenient shortcut. The alternative
+    is to register a type for a given integer value. The XML configuration
+    used to configure these objects is shown below</para>
+
+    <programlisting language="myxml">  &lt;object name="XmlMessageConverter" type="Spring.NmsQuickStart.Common.Converters.XmlMessageConverter, Spring.NmsQuickStart.Common"&gt;
+    &lt;property name="TypeMapper" ref="TypeMapper"/&gt;
+  &lt;/object&gt;
+
+  &lt;object name="TypeMapper" type="Spring.NmsQuickStart.Common.Converters.TypeMapper, Spring.NmsQuickStart.Common"&gt;
+    &lt;!-- use simple configuation style --&gt;
+    &lt;property name="DefaultNamespace" value="Spring.NmsQuickStart.Common.Data"/&gt;
+    &lt;property name="DefaultAssemblyName" value="Spring.NmsQuickStart.Common"/&gt;
+  &lt;/object&gt;</programlisting>
+
+    <para>This configuration is common between the server and the
+    client.</para>
+  </section>
+
+  <section>
+    <title>Messaging Infrastructure</title>
+
+    <para>The implementations of the gateway interfaces inherit from Spring's
+    helper class <literal>NmsGatewaySupport</literal> in order to get easy
+    access to a NmsTemplate for sending. The implementation of the
+    <literal>IStockService</literal> interface is shown below</para>
+
+    <programlisting language="csharp">    public class NmsStockServiceGateway : NmsGatewaySupport, IStockService
+    {
+        private IDestination defaultReplyToQueue;
+        
+        public IDestination DefaultReplyToQueue
+        {
+            set { defaultReplyToQueue = value; }
+        }
+
+        public void Send(TradeRequest tradeRequest)
+        {                                                        // post process message
+            NmsTemplate.ConvertAndSendWithDelegate(tradeRequest, delegate(IMessage message)
+                                                                     {
+                                                                         message.NMSReplyTo = defaultReplyToQueue;
+                                                                         message.NMSCorrelationID = new Guid().ToString();
+                                                                         return message;
+                                                                     });
+        }        
+    }</programlisting>
+
+    <para>The <literal>Send</literal> method is using NmsTemplate's
+    <literal>ConvertAndSendWithDelegate(object obj,
+    MessagePostProcessorDelegate messagePostProcessorDelegate)</literal>
+    method. The anonymous delegate allows you to modify the message
+    properties, such as NMSReplyTo and NMSCorrelationID after the message has
+    been converted from an object but before it has been sent. The use of an
+    anonymous delegate allows makes it very easy to apply any post processing
+    logic to the converted message.</para>
+
+    <para>The object definition for the
+    <literal>NmsStockServiceGateway</literal> is shown below along with its
+    dependent object definitions of NmsTemplate and the
+    ConnectionFactory.</para>
+
+    <para><programlisting language="myxml">  &lt;object name="StockServiceGateway" type="Spring.NmsQuickStart.Client.Gateways.NmsStockServiceGateway, Spring.NmsQuickStart.Client"&gt;
+    &lt;property name="NmsTemplate"  ref="NmsTemplate"/&gt;
+    &lt;property name="DefaultReplyToQueue"&gt;
+      &lt;object type="Apache.NMS.ActiveMQ.Commands.ActiveMQQueue, Apache.NMS.ActiveMQ"&gt;
+        &lt;constructor-arg value="APP.STOCK.JOE"/&gt;
+      &lt;/object&gt;
+    &lt;/property&gt;
+  &lt;/object&gt;
+
+  &lt;object name="NmsTemplate" type="Spring.Messaging.Nms.Core.NmsTemplate, Spring.Messaging.Nms"&gt;
+    &lt;property name="ConnectionFactory" ref="ConnectionFactory"/&gt;
+    &lt;property name="DefaultDestinationName" value="APP.STOCK.REQUEST"/&gt;
+    &lt;property name="MessageConverter" ref="XmlMessageConverter"/&gt;
+  &lt;/object&gt;
+
+  &lt;object id="ConnectionFactory" type="Apache.NMS.ActiveMQ.ConnectionFactory, Apache.NMS.ActiveMQ"&gt;
+    &lt;constructor-arg index="0" value="tcp://localhost:61616"/&gt;
+  &lt;/object&gt;</programlisting>In this example the 'raw'
+    <literal>Apache.NMS.ActiveMQ.ConnectionFactory </literal>connection
+    factory was used. It would be more efficient resource wise to use Spring's
+    <literal>CachingConnectionFactory</literal> wrapper class so that
+    connections will not be open and closed for each message send as well as
+    allowing for the caching of other intermediate NMS API objects such as
+    sessions and message producers.</para>
+
+    <para>A similar configuration is used on the server to configure the class
+    <literal>Spring.NmsQuickStart.Server.Gateways.MarketDataServiceGateway
+    </literal>that implements the <literal>IMarketDataService</literal>
+    interface.</para>
+
+    <para>Since the client is also a consumer of messages, on the topic
+    APP.STOCK.MARKETDATA and the queue APP.STOCK.JOE (for Trader Joe!), two
+    message listener containers are defined as shown below.</para>
+
+    <programlisting language="myxml">  &lt;nms:listener-container connection-factory="ConnectionFactory"&gt;
+    &lt;nms:listener ref="MessageListenerAdapter" destination="APP.STOCK.JOE" /&gt;
+    &lt;nms:listener ref="MessageListenerAdapter" destination="APP.STOCK.MARKETDATA" pubsub-domain="true"/&gt;
+  &lt;/nms:listener-container&gt;</programlisting>
+
+    <para>Refer to the <link linkend="messaging">messages reference
+    docs</link> for all the available attributes to configure the container
+    and also the section on <link
+    linkend="xsd-config-body-schemas-nms">registering the NMS schema</link>
+    with Spring..</para>
+
+    <para>On the server we define a message listener container for the queue
+    APP.STOCK.REQUEST but set the concurrency property to 10 so that 10
+    threads will be consuming messages from the queue.</para>
+
+    <programlisting language="myxml">  &lt;nms:listener-container connection-factory="ConnectionFactory" concurrency="<emphasis
+        role="bold">10</emphasis>"&gt;
+    &lt;nms:listener ref="MessageListenerAdapter" destination="APP.STOCK.REQUEST" /&gt;
+  &lt;/nms:listener-container&gt;</programlisting>
+  </section>
+
+  <section>
+    <title>Running the application</title>
+
+    <para>To run both the client and server make sure that you select
+    'Multiple Startup Projects' within VS.NET. The GUI has a button to make a
+    hardcoded trade request and show confirmation in a text box. A text area
+    is used to display the market data. There is a 'Get Portfolio' button that
+    is not implemented at the moment. A picture of the GUI after it has been
+    running for a while and trade has been sent and responded to is shown
+    below</para>
+
+    <mediaobject>
+      <imageobject>
+        <imagedata fileref="images/nms-quickstart-gui.png"></imagedata>
+      </imageobject>
+    </mediaobject>
+
+    <para></para>
+  </section>
+</chapter>
