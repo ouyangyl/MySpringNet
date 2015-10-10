@@ -5,8 +5,10 @@ using System.Web;
 
 namespace MySpringNet.Controllers
 {
-    public class BaseController
+    public class BaseController : System.Web.Mvc.Controller
     {
         public int PageSize { get; set; }
+
+        
     }
 }
