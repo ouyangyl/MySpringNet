@@ -39,6 +39,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D90E55
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spring.Aop.2010", "spring-net-master\src\Spring\Spring.Aop\Spring.Aop.2010.csproj", "{3A3A4E65-45A6-4B20-B460-0BEDC302C02C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Application", "Application", "{23DB774F-9BBE-4B29-AE72-F7A2E56477DA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MySpringNet.Application", "MySpringNet.Application\MySpringNet.Application.csproj", "{570CACB7-C764-42C5-BD44-187987E2A194}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +73,10 @@ Global
 		{3A3A4E65-45A6-4B20-B460-0BEDC302C02C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A3A4E65-45A6-4B20-B460-0BEDC302C02C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A3A4E65-45A6-4B20-B460-0BEDC302C02C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{570CACB7-C764-42C5-BD44-187987E2A194}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{570CACB7-C764-42C5-BD44-187987E2A194}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{570CACB7-C764-42C5-BD44-187987E2A194}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{570CACB7-C764-42C5-BD44-187987E2A194}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -78,5 +86,6 @@ Global
 		{BA4789EB-281A-48EA-8763-28B9F0596A18} = {92B51B10-B41E-4E88-86A7-05491DE4EE84}
 		{710961A3-0DF4-49E4-A26E-F5B9C044AC84} = {92B51B10-B41E-4E88-86A7-05491DE4EE84}
 		{3A3A4E65-45A6-4B20-B460-0BEDC302C02C} = {92B51B10-B41E-4E88-86A7-05491DE4EE84}
+		{570CACB7-C764-42C5-BD44-187987E2A194} = {23DB774F-9BBE-4B29-AE72-F7A2E56477DA}
 	EndGlobalSection
 EndGlobal

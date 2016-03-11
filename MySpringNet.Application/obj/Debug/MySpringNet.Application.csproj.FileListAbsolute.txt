@@ -1,0 +1,4 @@
+E:\study\Spring.net\MySpringNet\MySpringNet.Application\bin\Debug\MySpringNet.Application.dll
+E:\study\Spring.net\MySpringNet\MySpringNet.Application\bin\Debug\MySpringNet.Application.pdb
+E:\study\Spring.net\MySpringNet\MySpringNet.Application\obj\Debug\MySpringNet.Application.dll
+E:\study\Spring.net\MySpringNet\MySpringNet.Application\obj\Debug\MySpringNet.Application.pdb
