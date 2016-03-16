@@ -14,7 +14,7 @@ namespace MySpringNet.Controllers.AOP
             var controller = invocation.Target as BaseController;
             if(controller.User==null || controller.User.Identity.IsAuthenticated==false)
             {
-                var url = string.Format("{0}?redirect={1}", controller.Url.Action("Account", "Login"), HttpUtility.UrlEncode(controller.Request.RawUrl));
+                var url = string.Format("{0}?redirect={1}", controller.Url.Action("Login", "Account"), HttpUtility.UrlEncode(controller.Request.RawUrl));
                 return new RedirectResult(url);
             }
             else

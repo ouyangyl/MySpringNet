@@ -7,6 +7,8 @@ using System.Web.Mvc;
 using System.Web.Optimization;
 using System.Web.Routing;
 using Spring.Web.Mvc;
+using Spring.Context;
+using Spring.Context.Support;
 
 namespace MySpringNet
 {
@@ -15,6 +17,14 @@ namespace MySpringNet
 
     public class MvcApplication : SpringMvcApplication//System.Web.HttpApplication
     {
+        private IApplicationContext ApplicationContext
+        {
+            get
+            {
+                return ContextRegistry.GetContext();
+            }
+        }
+
         protected void Application_Start()
         {
             AreaRegistration.RegisterAllAreas();
