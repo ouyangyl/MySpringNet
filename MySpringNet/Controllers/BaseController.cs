@@ -9,6 +9,6 @@ namespace MySpringNet.Controllers
     {
         public int PageSize { get; set; }
 
-        
+        public string UserName { get; set; }
     }
 }

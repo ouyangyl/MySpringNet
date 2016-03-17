@@ -35,5 +35,10 @@ namespace MySpringNet
             BundleConfig.RegisterBundles(BundleTable.Bundles);
             AuthConfig.RegisterAuth();
         }
+
+        protected void Application_PostAuthenticateRequest(object sender,EventArgs e)
+        {
+            var httpContext = ApplicationContext.GetObject<HttpContextWrapper>("HttpContext");
+        }
     }
 }

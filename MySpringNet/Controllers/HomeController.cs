@@ -17,6 +17,7 @@ namespace MySpringNet.Controllers
         {
             ViewBag.Message = "Modify this template to jump-start your ASP.NET MVC application.";
             ViewBag.PageSize = PageSize;
+            ViewBag.UserName = UserName;
             return View();
         }
 
